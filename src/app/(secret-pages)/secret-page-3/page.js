@@ -23,13 +23,19 @@ const SecretPage3 = () => {
     const [secret, setSecret] = useState("");
     const [users, setUsers] = useState([]);
     const [pendingList, setPendingList] = useState([]);
+    const [friendsList, setFriendsList] = useState([]);
     const [usersCount, setUsersCount] = useState(0);
     const [pendingListCount, setPendingListCount] = useState(0);
+    const [friendsListCount, setFriendsListCount] = useState(0);
+    const [visibleSecrets, setVisibleSecrets] = useState({});
     const [offset, setOffset] = useState(0);
     const [pendingOffset, setPendingOffset] = useState(0);
+    const [friendsDataOffset, setFriendsDataOffset] = useState(0);
     const [triggerFetch, setTriggerFetch] = useState(false);
     const [loading, setLoading] = useState(false);
-    const limit = 10;
+
+    const limit = 3;
+    const end = offset + limit - 1;
 
     useEffect(() => {
         if (userData?.secret) {
@@ -39,22 +45,12 @@ const SecretPage3 = () => {
 
     useEffect(() => {
         const fetchCount = async () => {
-            const { count, error } = await supabase
-                .from("users")
-                .select("*", { count: "exact", head: true });
-
-            if (error) {
-                setErrorMessage(`Error: ${error.message}`);
-                return;
-            } else {
-                setUsersCount(count - 1);
-            }
-
             const { count: pendingCount, error: pendingCountError } =
                 await supabase
                     .from("friends")
                     .select("user_id", { count: "exact" })
-                    .eq("friend_id", user.id);
+                    .eq("friend_id", user.id)
+                    .eq("status", "pending");
 
             if (pendingCountError) {
                 setErrorMessage(`Error: ${pendingCountError.message}`);
@@ -73,7 +69,8 @@ const SecretPage3 = () => {
                 .from("friends")
                 .select("user_id")
                 .eq("friend_id", user.id)
-                .eq("status", "pending");
+                .eq("status", "pending")
+                .range(pendingOffset, end);
 
             if (pendingError) {
                 console.error("Error fetching pending list:", pendingError);
@@ -91,7 +88,15 @@ const SecretPage3 = () => {
             if (error) {
                 setErrorMessage(`Error: ${error.message}`);
             } else {
-                setPendingList(data);
+                setPendingList((prevPendingList) => {
+                    const newData = data.filter(
+                        (newUser) =>
+                            !prevPendingList.some(
+                                (existingUser) => existingUser.id === newUser.id
+                            )
+                    );
+                    return [...prevPendingList, ...newData];
+                });
             }
         };
 
@@ -115,6 +120,55 @@ const SecretPage3 = () => {
                 ),
             ];
 
+            setFriendsListCount(friendIds.length);
+
+            const { data: friendsData, error: friendsDataError } =
+                await supabase
+                    .from("users")
+                    .select("id, name, secret")
+                    .in(
+                        "id",
+                        friendIds.filter((id) => id !== user.id)
+                    )
+                    .range(friendsDataOffset, end);
+
+            if (friendsDataError) {
+                console.error("Error fetching friends:", friendsError);
+                return;
+            } else {
+                setFriendsList((prevFriendsData) => {
+                    const newData = friendsData.filter(
+                        (newUser) =>
+                            !prevFriendsData.some(
+                                (existingUser) => existingUser.id === newUser.id
+                            )
+                    );
+                    return [...prevFriendsData, ...newData];
+                });
+            }
+
+            let countQuery = supabase
+                .from("users")
+                .select("*", { count: "exact" })
+                .not("id", "eq", user.id);
+
+            if (friendIds.length > 0) {
+                countQuery = countQuery.not(
+                    "id",
+                    "in",
+                    `(${friendIds.join(",")})`
+                );
+            }
+
+            const { count: uCount, error: uError } = await countQuery;
+
+            if (uError) {
+                setErrorMessage(`Error: ${uError.message}`);
+                return;
+            } else {
+                setUsersCount(uCount);
+            }
+
             let query = supabase
                 .from("users")
                 .select("id, name")
@@ -124,18 +178,28 @@ const SecretPage3 = () => {
                 query = query.not("id", "in", `(${friendIds.join(",")})`);
             }
 
+            query = query.range(offset, end);
+
             const { data: users, error: usersError } = await query;
 
             if (usersError) {
                 setErrorMessage(`Error: ${usersError.message}`);
             } else {
-                setUsers(users);
+                setUsers((prevUsers) => {
+                    const newData = users.filter(
+                        (newUser) =>
+                            !prevUsers.some(
+                                (existingUser) => existingUser.id === newUser.id
+                            )
+                    );
+                    return [...prevUsers, ...newData];
+                });
             }
         };
 
         fetchPendingList();
         fetchUsers();
-    }, [offset, triggerFetch, supabase]); // eslint-disable-line
+    }, [offset, pendingOffset, friendsDataOffset, triggerFetch, supabase]); // eslint-disable-line
 
     const addFriend = async (friendId) => {
         const { error } = await supabase
@@ -196,62 +260,132 @@ const SecretPage3 = () => {
         }
     };
 
-    // console.log(pendingList);
-    // console.log(pendingListCount);
+    const toggleSecretVisibility = (friendId) => {
+        setVisibleSecrets((prev) => ({
+            ...prev,
+            [friendId]: !prev[friendId],
+        }));
+    };
+
+    console.log("users", users.length);
+    console.log("userscount", usersCount);
 
     return (
         <ProtectedRoute user={user}>
-            <h1>Secret Page 3</h1>
+            <h1 className="text-3xl font-bold text-center mb-6">
+                Secret Page 3
+            </h1>
             {userData?.secret && (
-                <>
-                    <p>This is your secret message:</p>
-                    <p>&quot;{userData?.secret}&quot;</p>
-                </>
+                <div className="mb-4">
+                    <p className="text-lg">This is your secret message:</p>
+                    <p className="text-xl font-semibold">
+                        &quot;{userData?.secret}&quot;
+                    </p>
+                </div>
             )}
+            {friendsListCount > 0 && (
+                <div className="mb-4">
+                    <p className="text-lg font-semibold">Friends:</p>
+                    <ul className="list-disc pl-5">
+                        {friendsList.map((friend) => (
+                            <li
+                                key={friend.id + friend.name + friend.secret}
+                                className="flex justify-between items-center mb-2"
+                            >
+                                {friend.name}{" "}
+                                {visibleSecrets[friend.id] && friend.secret && (
+                                    <span className="text-sm text-gray-600">
+                                        - Secret Message: &quot;{friend.secret}
+                                        &quot;
+                                    </span>
+                                )}
+                                <button
+                                    onClick={() =>
+                                        toggleSecretVisibility(friend.id)
+                                    }
+                                    className="ml-2 text-blue-500 hover:underline"
+                                >
+                                    {visibleSecrets[friend.id]
+                                        ? "Hide Secret"
+                                        : "Show Secret"}
+                                </button>
+                            </li>
+                        ))}
+                    </ul>
+                </div>
+            )}
+            {friendsListCount > limit &&
+                friendsListCount > friendsList.length && (
+                    <button
+                        onClick={() =>
+                            setFriendsDataOffset((prev) => prev + limit)
+                        }
+                        className="mt-4 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+                    >
+                        Load More
+                    </button>
+                )}
             {usersCount > 0 && (
-                <>
-                    <p>Add Friends:</p>
-                    <ul>
+                <div className="mt-6 w-60">
+                    <p className="text-lg font-semibold">Add Friends:</p>
+                    <ul className="list-disc pl-5">
                         {users.map((user) => (
-                            <li key={user.id}>
+                            <li
+                                key={user.id}
+                                className="flex justify-between items-center mb-2"
+                            >
                                 {user.name}{" "}
-                                <button onClick={() => addFriend(user.id)}>
+                                <button
+                                    onClick={() => addFriend(user.id)}
+                                    className="text-blue-500 hover:underline"
+                                >
                                     Add
                                 </button>
                             </li>
                         ))}
                     </ul>
-                </>
+                </div>
             )}
-            {usersCount > 10 && (
-                <button onClick={() => setOffset((prev) => prev + limit)}>
+            {usersCount > limit && usersCount > users.length && (
+                <button
+                    onClick={() => setOffset((prev) => prev + limit)}
+                    className="mt-4 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+                >
                     Load More
                 </button>
             )}
             {pendingListCount > 0 && (
-                <>
-                    <p>Friend Request:</p>
-                    <ul>
+                <div className="mt-6">
+                    <p className="text-lg font-semibold">Friend Request:</p>
+                    <ul className="list-disc pl-5">
                         {pendingList.map((user) => (
-                            <li key={user.id + user.name}>
+                            <li
+                                key={user.id + user.name}
+                                className="flex justify-between items-center mb-2"
+                            >
                                 {user.name}{" "}
-                                <button onClick={() => acceptFriend(user.id)}>
+                                <button
+                                    onClick={() => acceptFriend(user.id)}
+                                    className="text-green-500 hover:underline"
+                                >
                                     Accept
                                 </button>
                             </li>
                         ))}
                     </ul>
-                </>
+                </div>
             )}
-            {pendingListCount > 10 && (
-                <button
-                    onClick={() =>
-                        setOffsetPendlingList((prev) => prev + limit)
-                    }
-                >
-                    Load More
-                </button>
-            )}
+            {pendingListCount > limit &&
+                pendingListCount > pendingList.length && (
+                    <button
+                        onClick={() =>
+                            setOffsetPendlingList((prev) => prev + limit)
+                        }
+                        className="mt-4 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+                    >
+                        Load More
+                    </button>
+                )}
             <SecretComponent
                 handleUpdateSecret={handleUpdateSecret}
                 secret={secret}
@@ -262,7 +396,12 @@ const SecretPage3 = () => {
                 handleDeleteAccount={handleDeleteAccount}
                 id={user?.id}
             />
-            <Link href="/">Go to Home Page</Link>
+            <Link
+                href="/"
+                className="block mt-6 text-blue-500 hover:text-blue-700"
+            >
+                Go to Home Page
+            </Link>
         </ProtectedRoute>
     );
 };

@@ -27,7 +27,10 @@ export default function Home() {
     }
 
     return (
-        <div>
+        <div className="max-w-4xl mx-auto p-4">
+            <h1 className="text-4xl font-bold text-center mb-6">
+                Secret Page App
+            </h1>
             {!user ? (
                 authMode === "login" ? (
                     <Login />
@@ -36,11 +39,32 @@ export default function Home() {
                 )
             ) : (
                 <div>
-                    <h1>Welcome, {userData?.name}</h1>
-                    <p>Here are your secret pages:</p>
-                    <Link href="/secret-page-1">Go to Secret Page 1</Link>
-                    <Link href="/secret-page-2">Go to Secret Page 2</Link>
-                    <Link href="/secret-page-3">Go to Secret Page 3</Link>
+                    <h1 className="text-3xl font-bold text-center mb-4">
+                        Welcome, {userData?.name}
+                    </h1>
+                    <p className="text-lg text-center mb-6">
+                        Here are your secret pages:
+                    </p>
+                    <div className="space-y-4">
+                        <Link
+                            href="/secret-page-1"
+                            className="block text-center text-blue-500 hover:text-blue-700 font-semibold"
+                        >
+                            Secret Page 1
+                        </Link>
+                        <Link
+                            href="/secret-page-2"
+                            className="block text-center text-blue-500 hover:text-blue-700 font-semibold"
+                        >
+                            Secret Page 2
+                        </Link>
+                        <Link
+                            href="/secret-page-3"
+                            className="block text-center text-blue-500 hover:text-blue-700 font-semibold"
+                        >
+                            Secret Page 3
+                        </Link>
+                    </div>
                     <DelLogoutBtn
                         handleLogout={handleLogout}
                         handleDeleteAccount={handleDeleteAccount}

@@ -61,12 +61,16 @@ const SecretPage2 = () => {
 
     return (
         <ProtectedRoute user={user}>
-            <h1>Secret Page 2</h1>
+            <h1 className="text-3xl font-bold text-center mb-6">
+                Secret Page 2
+            </h1>
             {userData?.secret && (
-                <>
-                    <p>This is your secret message:</p>
-                    <p>&quot;{userData?.secret}&quot;</p>
-                </>
+                <div className="mb-4">
+                    <p className="text-lg">This is your secret message:</p>
+                    <p className="text-xl font-semibold">
+                        &quot;{userData?.secret}&quot;
+                    </p>
+                </div>
             )}
             <SecretComponent
                 handleUpdateSecret={handleUpdateSecret}
@@ -78,7 +82,12 @@ const SecretPage2 = () => {
                 handleDeleteAccount={handleDeleteAccount}
                 id={user?.id}
             />
-            <Link href="/">Go to Home Page</Link>
+            <Link
+                href="/"
+                className="block mt-6 text-blue-500 hover:text-blue-700"
+            >
+                Go to Home Page
+            </Link>
         </ProtectedRoute>
     );
 };
