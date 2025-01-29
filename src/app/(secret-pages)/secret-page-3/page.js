@@ -103,13 +103,21 @@ const SecretPage3 = () => {
         const fetchUsers = async () => {
             const { data: friends, error: friendsError } = await supabase
                 .from("friends")
-                .select("friend_id, user_id")
+                .select("friend_id, user_id, status")
                 .or(`user_id.eq.${user.id},friend_id.eq.${user.id}`);
 
             if (friendsError) {
                 console.error("Error fetching friends:", friendsError);
                 return;
             }
+
+            const confirmedFriendIds = [
+                ...new Set(
+                    friends
+                        .filter((friend) => friend.status == "accepted")
+                        .flatMap((friend) => [friend.user_id, friend.friend_id])
+                ),
+            ];
 
             const friendIds = [
                 ...new Set(
@@ -120,7 +128,7 @@ const SecretPage3 = () => {
                 ),
             ];
 
-            setFriendsListCount(friendIds.length);
+            setFriendsListCount(confirmedFriendIds.length);
 
             const { data: friendsData, error: friendsDataError } =
                 await supabase
@@ -128,7 +136,7 @@ const SecretPage3 = () => {
                     .select("id, name, secret")
                     .in(
                         "id",
-                        friendIds.filter((id) => id !== user.id)
+                        confirmedFriendIds.filter((id) => id !== user.id)
                     )
                     .range(friendsDataOffset, end);
 
@@ -267,9 +275,6 @@ const SecretPage3 = () => {
         }));
     };
 
-    console.log("users", users.length);
-    console.log("userscount", usersCount);
-
     return (
         <ProtectedRoute user={user}>
             <h1 className="text-3xl font-bold text-center mb-6">
@@ -355,7 +360,7 @@ const SecretPage3 = () => {
                 </button>
             )}
             {pendingListCount > 0 && (
-                <div className="mt-6">
+                <div className="mt-6  w-60">
                     <p className="text-lg font-semibold">Friend Request:</p>
                     <ul className="list-disc pl-5">
                         {pendingList.map((user) => (

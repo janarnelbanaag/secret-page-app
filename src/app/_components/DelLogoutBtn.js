@@ -10,7 +10,9 @@ const DelLogoutBtn = ({ handleLogout, handleDeleteAccount, id }) => {
                 Logout
             </button>
             <button
-                onClick={() => handleDeleteAccount(id)}
+                onClick={() =>
+                    window.confirm("Are you sure?") && handleDeleteAccount(id)
+                }
                 className="w-full px-4 py-2 bg-gray-500 text-white rounded hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-gray-500"
             >
                 Delete Account
