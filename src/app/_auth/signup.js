@@ -63,31 +63,58 @@ export default function Signup() {
         }
     };
 
+    const toggleLogin = () => {
+        setSuccessMessage("");
+        setErrorMessage("");
+        setAuthMode("login");
+    };
+
     return (
         <div>
-            <h1>Sign Up</h1>
-            {errorMessage && <p style={{ color: "red" }}>{errorMessage}</p>}
-            <input
-                type="text"
-                placeholder="Name"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-            />
-            <input
-                type="email"
-                placeholder="Email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-            />
-            <input
-                type="password"
-                placeholder="Password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-            />
-            <button onClick={handleSignup}>Sign Up</button>
-            <span>Already have an account? </span>
-            <button onClick={() => setAuthMode("login")}>Login</button>
+            <h1 className="text-3xl font-bold text-center mb-6">Sign Up</h1>
+            {errorMessage && (
+                <p className="text-red-500 text-center mb-4">{errorMessage}</p>
+            )}
+
+            <div className="space-y-4">
+                <input
+                    type="text"
+                    placeholder="Name"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+                <input
+                    type="email"
+                    placeholder="Email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+                <input
+                    type="password"
+                    placeholder="Password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+                <button
+                    onClick={handleSignup}
+                    className="w-full px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                    Sign Up
+                </button>
+            </div>
+
+            <div className="mt-4 text-center">
+                <span className="text-sm">Already have an account? </span>
+                <button
+                    onClick={toggleLogin}
+                    className="text-blue-500 hover:text-blue-700 text-sm font-semibold"
+                >
+                    Login
+                </button>
+            </div>
         </div>
     );
 }
