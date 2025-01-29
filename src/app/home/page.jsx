@@ -1,10 +1,10 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { createClient } from "../../utils/supabase/client";
+import { createClient } from "../../../utils/supabase/client";
 
-import Login from "./_auth/login";
-import Signup from "./_auth/signup";
+import Login from "../_auth/login";
+import Signup from "../_auth/signup";
 
 export default function Home() {
     const supabase = createClient();
