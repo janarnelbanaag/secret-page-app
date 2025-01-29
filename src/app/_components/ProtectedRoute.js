@@ -1,14 +1,10 @@
-import { useEffect } from "react";
-import { useRouter } from "next/router";
-import supabase from "../_config/supabaseClient";
+import { redirect } from "next/navigation";
+import { createClient } from "../../../utils/supabase/client";
 
-export default function ProtectedRoute({ children }) {
-    const router = useRouter();
-
-    useEffect(() => {
-        const session = supabase.auth.getSession();
-        if (!session) router.push("/login");
-    }, [router]);
+export default function ProtectedRoute({ user, children }) {
+    if (!user) {
+        redirect("/");
+    }
 
     return <>{children}</>;
 }

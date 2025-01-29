@@ -2,44 +2,25 @@
 
 import { useState, useEffect } from "react";
 import { createClient } from "../../utils/supabase/client";
+import { useAuth } from "./_context/AuthContext";
 
 import Login from "./_auth/login";
 import Signup from "./_auth/signup";
+import Link from "next/link";
+import DelLogoutBtn from "./_components/DelLogoutBtn";
 
 export default function Home() {
-    const supabase = createClient();
-
-    const [user, setUser] = useState(null);
-    const [loading, setLoading] = useState(true);
-    const [authMode, setAuthMode] = useState("login");
-
-    useEffect(() => {
-        const checkUserSession = async () => {
-            setLoading(true);
-            const { data } = await supabase.auth.getSession();
-            if (data?.session?.user) {
-                setUser(data.session.user);
-            }
-            setLoading(false);
-        };
-
-        checkUserSession();
-
-        const { data: authListener } = supabase.auth.onAuthStateChange(
-            (_event, session) => {
-                setUser(session?.user || null);
-            }
-        );
-
-        return () => {
-            authListener?.unsubscribe();
-        };
-    }, []);
-
-    const handleLogout = async () => {
-        await supabase.auth.signOut();
-        setUser(null);
-    };
+    const {
+        supabase,
+        user,
+        setUser,
+        userData,
+        authMode,
+        setAuthMode,
+        loading,
+        handleLogout,
+        handleDeleteAccount,
+    } = useAuth();
 
     if (loading) {
         return <div>Loading...</div>;
@@ -49,20 +30,22 @@ export default function Home() {
         <div>
             {!user ? (
                 authMode === "login" ? (
-                    <Login
-                        onLoginSuccess={(user) => setUser(user)}
-                        toggleAuthMode={() => setAuthMode("signup")}
-                    />
+                    <Login />
                 ) : (
-                    <Signup
-                        onSignupSuccess={(user) => setUser(user)}
-                        toggleAuthMode={() => setAuthMode("login")}
-                    />
+                    <Signup />
                 )
             ) : (
                 <div>
-                    <h1>Welcome, {user.email}</h1>
-                    <button onClick={handleLogout}>Logout</button>
+                    <h1>Welcome, {userData?.name}</h1>
+                    <p>Here are your secret pages:</p>
+                    <Link href="/secret-page-1">Go to Secret Page 1</Link>
+                    <Link href="/secret-page-2">Go to Secret Page 2</Link>
+                    <Link href="/secret-page-3">Go to Secret Page 3</Link>
+                    <DelLogoutBtn
+                        handleLogout={handleLogout}
+                        handleDeleteAccount={handleDeleteAccount}
+                        id={user.id}
+                    />
                 </div>
             )}
         </div>

@@ -1,29 +1,72 @@
 "use client";
 
 import { useState } from "react";
-import { signup } from "./authActions";
+import { createClient } from "../../../utils/supabase/client";
+import { useAuth } from "../_context/AuthContext";
 
 export default function Signup() {
+    const {
+        supabase,
+        setAuthMode,
+        setLoading,
+        successMessage,
+        setSuccessMessage,
+        errorMessage,
+        setErrorMessage,
+    } = useAuth();
+
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
     const [name, setName] = useState("");
-    const [error, setError] = useState("");
 
     const handleSignup = async () => {
-        const { data, error } = await signup({ email, password, name });
+        setLoading(true);
+        setErrorMessage("");
+        setSuccessMessage("");
 
-        if (error) {
-            setError(error.message);
-        } else {
-            setError("");
-            console.log("Signup successful:", data);
+        try {
+            const { data: authData, error: authError } =
+                await supabase.auth.signUp({
+                    email,
+                    password,
+                });
+
+            if (authError) {
+                throw new Error(authError.message);
+            }
+
+            const { data: dbData, error: dbError } = await supabase
+                .from("users")
+                .insert({
+                    id: authData.user.id,
+                    email,
+                    password,
+                    name,
+                });
+
+            if (dbError) {
+                throw new Error(dbError.message);
+            }
+
+            await supabase.auth.signOut();
+            setSuccessMessage("Registered successfully! You can now login.");
+
+            setTimeout(() => {
+                setAuthMode("login");
+                setLoading(false);
+            }, 1000);
+        } catch (err) {
+            setErrorMessage(err.message);
+            setTimeout(() => {
+                setErrorMessage("");
+            }, 3000);
         }
     };
 
     return (
         <div>
             <h1>Sign Up</h1>
-            {error && <p style={{ color: "red" }}>{error}</p>}
+            {errorMessage && <p style={{ color: "red" }}>{errorMessage}</p>}
             <input
                 type="text"
                 placeholder="Name"
@@ -43,6 +86,8 @@ export default function Signup() {
                 onChange={(e) => setPassword(e.target.value)}
             />
             <button onClick={handleSignup}>Sign Up</button>
+            <span>Already have an account? </span>
+            <button onClick={() => setAuthMode("login")}>Login</button>
         </div>
     );
 }

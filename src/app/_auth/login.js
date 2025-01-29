@@ -1,27 +1,44 @@
 "use client";
 
-import { useState } from "react";
-import { createClient } from "../../../utils/supabase/client";
+import { useEffect, useState } from "react";
+import { useAuth } from "../_context/AuthContext";
 
-export default function Login({ onLoginSuccess, toggleAuthMode }) {
-    const supabase = createClient();
+export default function Login() {
+    const {
+        supabase,
+        setUser,
+        setAuthMode,
+        setLoading,
+        successMessage,
+        setSuccessMessage,
+        errorMessage,
+        setErrorMessage,
+    } = useAuth();
 
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
-    const [error, setError] = useState("");
 
     const handleLogin = async () => {
-        setError("");
+        setLoading(true);
+        setErrorMessage("");
+        setSuccessMessage("");
+
         const { data, error } = await supabase.auth.signInWithPassword({
             email,
             password,
         });
 
         if (error) {
-            setError(error.message);
+            setErrorMessage(error.message);
         } else {
-            onLoginSuccess(data.user);
+            setUser(data.user);
         }
+
+        setLoading(false);
+    };
+
+    const toggleRegister = () => {
+        setAuthMode("signup");
     };
 
     return (
@@ -40,10 +57,12 @@ export default function Login({ onLoginSuccess, toggleAuthMode }) {
                 onChange={(e) => setPassword(e.target.value)}
             />
             <button onClick={handleLogin}>Login</button>
-            <button onClick={toggleAuthMode}>
-                Don&quot;t have an account? Sign Up
-            </button>
-            {error && <p style={{ color: "red" }}>{error}</p>}
+            <span>Don&apos;t have an account? </span>
+            <button onClick={toggleRegister}>Register</button>
+            {errorMessage && <p style={{ color: "red" }}>{errorMessage}</p>}
+            {successMessage && (
+                <p style={{ color: "green" }}>{successMessage}</p>
+            )}
         </div>
     );
 }
