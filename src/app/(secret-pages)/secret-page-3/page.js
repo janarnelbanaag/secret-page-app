@@ -7,6 +7,10 @@ import { useAuth } from "@/app/_context/AuthContext";
 import DelLogoutBtn from "@/app/_components/DelLogoutBtn";
 import ProtectedRoute from "@/app/_components/ProtectedRoute";
 import SecretComponent from "@/app/_components/SecretComponent";
+import {
+    fetchPendingUser,
+    fetchPendingUserData,
+} from "@/app/_api/fetchData.api.";
 
 const SecretPage3 = () => {
     const {
@@ -64,29 +68,26 @@ const SecretPage3 = () => {
     }, [supabase]); // eslint-disable-line
 
     useEffect(() => {
-        const fetchPendingList = async () => {
-            const { data: pending, error: pendingError } = await supabase
-                .from("friends")
-                .select("user_id")
-                .eq("friend_id", user.id)
-                .eq("status", "pending")
-                .range(pendingOffset, end);
+        const fetchData = async () => {
+            const { data: pending, error: pendingError } =
+                await fetchPendingUser(supabase, user.id, pendingOffset, limit);
 
             if (pendingError) {
+                setErrorMessage(`Error: ${pendingError.message}`);
                 console.error("Error fetching pending list:", pendingError);
                 return;
             }
 
-            const { data, error } = await supabase
-                .from("users")
-                .select("id, name")
-                .in(
-                    "id",
-                    pending.map((user) => user.user_id)
-                );
+            const { data, error } = await fetchPendingUserData(
+                supabase,
+                pending,
+                pendingOffset,
+                limit
+            );
 
             if (error) {
                 setErrorMessage(`Error: ${error.message}`);
+                console.error("Error fetching pending user data :", error);
             } else {
                 setPendingList((prevPendingList) => {
                     const newData = data.filter(
@@ -186,7 +187,7 @@ const SecretPage3 = () => {
                 query = query.not("id", "in", `(${friendIds.join(",")})`);
             }
 
-            query = query.range(offset, end);
+            query = query.range(0, end);
 
             const { data: users, error: usersError } = await query;
 
@@ -205,7 +206,7 @@ const SecretPage3 = () => {
             }
         };
 
-        fetchPendingList();
+        fetchData();
         fetchUsers();
     }, [offset, pendingOffset, friendsDataOffset, triggerFetch, supabase]); // eslint-disable-line
 
@@ -218,7 +219,11 @@ const SecretPage3 = () => {
             setErrorMessage(`Error: ${error.message}`);
         } else {
             setSuccessMessage("Friend added successfully!");
-            setTriggerFetch(!triggerFetch);
+            await setUsers((prevUsers) => {
+                console.log(prevUsers);
+                return prevUsers.filter((user) => user.id !== friendId);
+            });
+            setOffset(offset - 1);
         }
     };
 
@@ -334,14 +339,14 @@ const SecretPage3 = () => {
                 <div className="mt-6 w-60">
                     <p className="text-lg font-semibold">Add Friends:</p>
                     <ul className="list-disc pl-5">
-                        {users.map((user) => (
+                        {users.map((u) => (
                             <li
-                                key={user.id}
+                                key={u.id}
                                 className="flex justify-between items-center mb-2"
                             >
-                                {user.name}{" "}
+                                {u.name}{" "}
                                 <button
-                                    onClick={() => addFriend(user.id)}
+                                    onClick={() => addFriend(u.id)}
                                     className="text-blue-500 hover:underline"
                                 >
                                     Add
